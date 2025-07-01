@@ -77,8 +77,7 @@ def fetch_images_from_url(target_url):
     payload = {
         "url": target_url,
         "formats": ["rawHtml"],
-        "onlyMainContent": True,
-        "renderPage": True  # Enable full JS rendering
+        "onlyMainContent": True
     }
 
     print(f"[DEBUG] Request payload: {payload}")

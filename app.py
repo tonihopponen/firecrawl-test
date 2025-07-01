@@ -16,6 +16,14 @@ except ImportError:
 load_dotenv()
 FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY")
 
+# Debug API key
+if not FIRECRAWL_API_KEY:
+    print("[ERROR] FIRECRAWL_API_KEY not found in environment variables!")
+    print("[ERROR] Please create a .env file with: FIRECRAWL_API_KEY=your_api_key_here")
+    print("[ERROR] Or set the environment variable: export FIRECRAWL_API_KEY=your_api_key_here")
+else:
+    print(f"[INFO] API Key found: {FIRECRAWL_API_KEY[:10]}...")
+
 app = Flask(__name__)
 if use_cors:
     CORS(app)
@@ -57,6 +65,10 @@ def extract_image_urls_from_html(html):
 def fetch_images_from_url(target_url):
     print(f"[INFO] Requesting Firecrawl scrape for URL: {target_url}")
 
+    # Check if API key is available
+    if not FIRECRAWL_API_KEY:
+        raise ValueError("FIRECRAWL_API_KEY is not set. Please check your .env file or environment variables.")
+
     endpoint = 'https://api.firecrawl.dev/v1/scrape'
     headers = {
         'Authorization': f'Bearer {FIRECRAWL_API_KEY}',
@@ -69,8 +81,16 @@ def fetch_images_from_url(target_url):
         "renderPage": True  # Enable full JS rendering
     }
 
+    print(f"[DEBUG] Request payload: {payload}")
+    print(f"[DEBUG] Headers (without API key): {dict(headers, Authorization='Bearer ***')}")
+
     response = requests.post(endpoint, headers=headers, json=payload)
     print(f"[DEBUG] Firecrawl status: {response.status_code}")
+    
+    if response.status_code != 200:
+        print(f"[ERROR] Response content: {response.text}")
+        print(f"[ERROR] Response headers: {dict(response.headers)}")
+    
     response.raise_for_status()
 
     json_data = response.json()

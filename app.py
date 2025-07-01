@@ -4,14 +4,21 @@ from bs4 import BeautifulSoup
 import re
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
-from flask_cors import CORS
+
+# Optional: allow frontend apps to call the API
+try:
+    from flask_cors import CORS
+    use_cors = True
+except ImportError:
+    use_cors = False
 
 # Load environment variables
 load_dotenv()
 FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY")
 
 app = Flask(__name__)
-CORS(app)  # Allow cross-origin requests for frontend apps
+if use_cors:
+    CORS(app)
 
 def extract_image_urls_from_html(html):
     soup = BeautifulSoup(html, 'html.parser')
@@ -58,7 +65,8 @@ def fetch_images_from_url(target_url):
     payload = {
         "url": target_url,
         "formats": ["rawHtml"],
-        "onlyMainContent": True
+        "onlyMainContent": True,
+        "renderPage": True  # Enable full JS rendering
     }
 
     response = requests.post(endpoint, headers=headers, json=payload)
@@ -66,15 +74,15 @@ def fetch_images_from_url(target_url):
     response.raise_for_status()
 
     json_data = response.json()
+    print(f"[DEBUG] Firecrawl response keys: {list(json_data.keys())}")
 
-    if 'rawHtml' not in json_data:
-        print("[WARN] No 'rawHtml' in Firecrawl response")
+    raw_html = json_data.get("rawHtml", "")
+    if not raw_html:
+        print("[WARN] No 'rawHtml' in Firecrawl response or it is empty.")
         return []
 
-    html_snippet = json_data['rawHtml'][:500].replace('\n', ' ').strip()
-    print(f"[DEBUG] Raw HTML snippet: {html_snippet[:500]}")
-
-    return extract_image_urls_from_html(json_data['rawHtml'])
+    print(f"[DEBUG] Raw HTML snippet: {raw_html[:500].replace(chr(10), ' ')}")
+    return extract_image_urls_from_html(raw_html)
 
 @app.route("/images", methods=["GET"])
 def get_images():
@@ -90,3 +98,4 @@ def get_images():
 
 if __name__ == "__main__":
     app.run(debug=True)
+

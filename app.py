@@ -95,9 +95,19 @@ def fetch_images_from_url(target_url):
     json_data = response.json()
     print(f"[DEBUG] Firecrawl response keys: {list(json_data.keys())}")
 
-    raw_html = json_data.get("rawHtml", "")
+    # Check if the response has the expected structure
+    if not json_data.get("success"):
+        print(f"[ERROR] Firecrawl request failed: {json_data}")
+        return []
+    
+    # The HTML content is nested in the data object
+    data = json_data.get("data", {})
+    print(f"[DEBUG] Data keys: {list(data.keys()) if isinstance(data, dict) else 'Not a dict'}")
+    
+    raw_html = data.get("rawHtml", "")
     if not raw_html:
-        print("[WARN] No 'rawHtml' in Firecrawl response or it is empty.")
+        print("[WARN] No 'rawHtml' in Firecrawl response data or it is empty.")
+        print(f"[DEBUG] Available data: {data}")
         return []
 
     print(f"[DEBUG] Raw HTML snippet: {raw_html[:500].replace(chr(10), ' ')}")

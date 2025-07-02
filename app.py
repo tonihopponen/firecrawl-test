@@ -139,7 +139,7 @@ def describe_image_with_openai(image_url):
         data_url = f"data:{content_type};base64,{img_b64}"
         # Send to OpenAI Vision
         response = openai.chat.completions.create(
-            model="gpt-4-vision-preview",
+            model="gpt-image-1",
             messages=[
                 {
                     "role": "user",

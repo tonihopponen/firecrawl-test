@@ -162,7 +162,8 @@ def get_images():
         return jsonify({"error": "Missing 'url' parameter"}), 400
     try:
         image_urls = fetch_images_from_url(url)
-        # For each image, get a description from OpenAI Vision
+        # Limit to first two images
+        image_urls = image_urls[:2]
         results = []
         for img_url in image_urls:
             desc = describe_image_with_openai(img_url)

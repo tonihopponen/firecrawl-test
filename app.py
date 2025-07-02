@@ -127,6 +127,15 @@ def fetch_images_from_url(target_url):
 # Function to get a short description of an image using OpenAI Vision
 def describe_image_with_openai(image_url):
     try:
+        # Skip SVGs, data URLs, and other unsupported formats
+        unsupported_exts = ('.svg', '.ico', '.bmp', '.tiff')
+        if (
+            image_url.lower().endswith(unsupported_exts)
+            or image_url.startswith('data:image/svg+xml')
+            or image_url.startswith('data:')
+        ):
+            print(f"[WARN] Skipping unsupported image format: {image_url}")
+            return "Not a supported image format"
         response = openai.chat.completions.create(
             model="gpt-4.1-mini",
             messages=[

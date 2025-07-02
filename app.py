@@ -127,7 +127,7 @@ def fetch_images_from_url(target_url):
 def describe_image_with_openai(image_url):
     try:
         response = openai.chat.completions.create(
-            model="gpt-4-vision-preview",
+            model="gpt-image-1",
             messages=[
                 {
                     "role": "user",

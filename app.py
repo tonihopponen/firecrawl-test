@@ -127,17 +127,6 @@ def fetch_images_from_url(target_url):
 # Function to get a short description of an image using OpenAI Vision
 def describe_image_with_openai(image_url):
     try:
-        # Download the image
-        img_response = requests.get(image_url)
-        img_response.raise_for_status()
-        content_type = img_response.headers.get('Content-Type', 'image/jpeg')
-        if not content_type.startswith('image/'):
-            print(f"[ERROR] URL does not point to an image: {image_url}")
-            return "Not an image"
-        # Encode as base64
-        img_b64 = base64.b64encode(img_response.content).decode('utf-8')
-        data_url = f"data:{content_type};base64,{img_b64}"
-        # Send to OpenAI Vision
         response = openai.chat.completions.create(
             model="gpt-4.1-mini",
             messages=[
@@ -145,7 +134,7 @@ def describe_image_with_openai(image_url):
                     "role": "user",
                     "content": [
                         {"type": "text", "text": "What is in this image?"},
-                        {"type": "image_url", "image_url": {"url": data_url}},
+                        {"type": "image_url", "image_url": {"url": image_url}},
                     ],
                 }
             ],

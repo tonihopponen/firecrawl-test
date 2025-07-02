@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 import re
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
+import openai
 
 # Optional: allow frontend apps to call the API
 try:
@@ -15,14 +16,23 @@ except ImportError:
 # Load environment variables
 load_dotenv()
 FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-# Debug API key
+# Debug API keys
 if not FIRECRAWL_API_KEY:
     print("[ERROR] FIRECRAWL_API_KEY not found in environment variables!")
     print("[ERROR] Please create a .env file with: FIRECRAWL_API_KEY=your_api_key_here")
     print("[ERROR] Or set the environment variable: export FIRECRAWL_API_KEY=your_api_key_here")
 else:
-    print(f"[INFO] API Key found: {FIRECRAWL_API_KEY[:10]}...")
+    print(f"[INFO] Firecrawl API Key found: {FIRECRAWL_API_KEY[:10]}...")
+if not OPENAI_API_KEY:
+    print("[ERROR] OPENAI_API_KEY not found in environment variables!")
+    print("[ERROR] Please create a .env file with: OPENAI_API_KEY=your_openai_api_key_here")
+    print("[ERROR] Or set the environment variable: export OPENAI_API_KEY=your_openai_api_key_here")
+else:
+    print(f"[INFO] OpenAI API Key found: {OPENAI_API_KEY[:10]}...")
+
+openai.api_key = OPENAI_API_KEY
 
 app = Flask(__name__)
 if use_cors:
@@ -113,6 +123,28 @@ def fetch_images_from_url(target_url):
     print(f"[DEBUG] Raw HTML snippet: {raw_html[:500].replace(chr(10), ' ')}")
     return extract_image_urls_from_html(raw_html)
 
+# Function to get a short description of an image using OpenAI Vision
+def describe_image_with_openai(image_url):
+    try:
+        response = openai.chat.completions.create(
+            model="gpt-4-vision-preview",
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "What is in this image?"},
+                        {"type": "image_url", "image_url": {"url": image_url}},
+                    ],
+                }
+            ],
+            max_tokens=100
+        )
+        desc = response.choices[0].message.content.strip()
+        return desc
+    except Exception as e:
+        print(f"[ERROR] OpenAI Vision error for {image_url}: {e}")
+        return "Description unavailable"
+
 @app.route("/images", methods=["GET"])
 def get_images():
     url = request.args.get("url")
@@ -120,7 +152,12 @@ def get_images():
         return jsonify({"error": "Missing 'url' parameter"}), 400
     try:
         image_urls = fetch_images_from_url(url)
-        return jsonify({"images": image_urls})
+        # For each image, get a description from OpenAI Vision
+        results = []
+        for img_url in image_urls:
+            desc = describe_image_with_openai(img_url)
+            results.append({"url": img_url, "description": desc})
+        return jsonify({"images": results})
     except Exception as e:
         print(f"[ERROR] {str(e)}")
         return jsonify({"error": str(e)}), 500
